@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #4c6ef5;
+  --brand-dark: #3b5bdb;
+  --brand-light: #dbe4ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0c14;
+  color: #e4e7f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(76, 110, 245, 0.3);
+}
+
+textarea:focus, button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.glass-card {
+  background: rgba(26, 29, 46, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+
+.mode-chip {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #9ca3bf;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.mode-chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d1d5e4;
+}
+
+.mode-chip.active {
+  background: rgba(76, 110, 245, 0.15);
+  border-color: rgba(76, 110, 245, 0.4);
+  color: #91a7ff;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--brand-dark);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #748ffc 0%, #91a7ff 50%, #bac8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(76, 110, 245, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 110, 245, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.char-counter {
+  font-size: 12px;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.char-counter.warning {
+  color: #f59e0b;
+}
+
+.char-counter.danger {
+  color: #ef4444;
+}
