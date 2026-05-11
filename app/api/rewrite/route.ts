@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import { checkUsage, incrementUsage } from "@/lib/usage";
 
 const MODE_PROMPTS: Record<string, string> = {
   professionnel: "Adopte un ton professionnel et formel, adapté au monde du travail.",
@@ -49,7 +45,6 @@ const MODE_PROMPTS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
     const body = await request.json();
     const { text, modes } = body;
 
@@ -61,40 +56,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Sélectionne au moins un mode" }, { status: 400 });
     }
 
-    const invalidModes = modes.filter((m: string) => !MODE_PROMPTS[m]);
-    if (invalidModes.length > 0) {
-      return NextResponse.json({ error: `Modes invalides : ${invalidModes.join(", ")}` }, { status: 400 });
+    // Check text length
+    if (text.length > 5000) {
+      return NextResponse.json({ error: "Limite de 5 000 caractères" }, { status: 400 });
     }
 
-    const userId = (session?.user as any)?.id;
-    const plan = (session?.user as any)?.plan || "FREE";
-
-    // Check usage limits
-    if (userId) {
-      const usageCheck = await checkUsage(userId, plan, text.length, modes);
-      if (!usageCheck.allowed) {
-        return NextResponse.json(
-          { error: usageCheck.reason, remaining: usageCheck.remaining },
-          { status: 429 }
-        );
-      }
-    } else {
-      if (text.length > 500) {
-        return NextResponse.json(
-          { error: "Limite de 500 caractères. Inscris-toi gratuitement pour continuer." },
-          { status: 400 }
-        );
-      }
+    // Check Groq key
+    if (!process.env.GROQ_API_KEY) {
+      console.error("GROQ_API_KEY is not set");
+      return NextResponse.json({ error: "Configuration serveur manquante" }, { status: 500 });
     }
 
     // Build combined prompt
-    const instructions = modes.map((m: string) => MODE_PROMPTS[m]).filter(Boolean);
+    const instructions = modes
+      .map((m: string) => MODE_PROMPTS[m])
+      .filter(Boolean);
+    
     const systemPrompt =
-      instructions.join("\n") +
+      (instructions.length > 0 ? instructions.join("\n") : "Réécris de manière claire et professionnelle.") +
       (instructions.length > 1 ? "\n\nCombine toutes ces instructions de façon cohérente." : "") +
       "\n\nRéponds UNIQUEMENT avec le texte transformé. Pas d'intro, pas d'explication, pas de guillemets.";
 
-    // Call Groq (Llama 3) — OpenAI-compatible API
+    // Call Groq
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,34 +98,21 @@ export async function POST(request: NextRequest) {
     const groqData = await groqResponse.json();
 
     if (!groqResponse.ok) {
-      console.error("Groq error:", groqData);
-      return NextResponse.json({ error: "Erreur de transformation. Réessaie." }, { status: 500 });
+      console.error("Groq error:", JSON.stringify(groqData));
+      return NextResponse.json(
+        { error: `Erreur Groq: ${groqData?.error?.message || "Réessaie."}` },
+        { status: 500 }
+      );
     }
 
     const resultText = groqData.choices?.[0]?.message?.content || "";
 
-    // Increment usage + save history
-    if (userId) {
-      if (plan === "FREE") await incrementUsage(userId);
-      if (plan === "PRO") {
-        await prisma.transformation.create({
-          data: { userId, sourceText: text, resultText, modes },
-        });
-      }
-    }
-
-    let remaining: number | undefined;
-    if (userId && plan === "FREE") {
-      const today = new Date().toISOString().split("T")[0];
-      const usage = await prisma.dailyUsage.findUnique({
-        where: { userId_date: { userId, date: today } },
-      });
-      remaining = Math.max(0, 5 - (usage?.count || 0));
-    }
-
-    return NextResponse.json({ result: resultText, remaining });
+    return NextResponse.json({ result: resultText });
   } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ error: "Erreur de transformation. Réessaie." }, { status: 500 });
+    console.error("API Error:", error?.message || error);
+    return NextResponse.json(
+      { error: `Erreur serveur: ${error?.message || "Réessaie."}` },
+      { status: 500 }
+    );
   }
 }
