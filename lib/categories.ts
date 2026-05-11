@@ -1,0 +1,67 @@
+export const CATEGORIES = [
+  {
+    id: "ton", label: "Ton", color: "#6366f1", bg: "rgba(99,102,241,0.08)", border: "rgba(99,102,241,0.2)",
+    modes: [
+      { id: "professionnel", label: "Professionnel", free: true },
+      { id: "casual", label: "Casual", free: true },
+      { id: "soutenu", label: "Soutenu", free: true },
+      { id: "direct", label: "Direct", free: true },
+      { id: "enthousiaste", label: "Enthousiaste", free: false },
+      { id: "diplomatique", label: "Diplomatique", free: false },
+      { id: "empathique", label: "Empathique", free: false },
+    ],
+  },
+  {
+    id: "format", label: "Format", color: "#2dd4bf", bg: "rgba(45,212,191,0.08)", border: "rgba(45,212,191,0.2)",
+    modes: [
+      { id: "email", label: "Email", free: true },
+      { id: "tweet", label: "Tweet", free: true },
+      { id: "sms", label: "SMS", free: true },
+      { id: "bullet", label: "Liste à puces", free: true },
+      { id: "linkedin", label: "Post LinkedIn", free: false },
+      { id: "lettre", label: "Lettre formelle", free: false },
+      { id: "slack", label: "Message Slack", free: false },
+      { id: "presentation", label: "Slides", free: false },
+    ],
+  },
+  {
+    id: "edit", label: "Modifier", color: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)",
+    modes: [
+      { id: "corriger", label: "Corriger", free: true },
+      { id: "simplifier", label: "Simplifier", free: true },
+      { id: "allonger", label: "Développer", free: true },
+      { id: "reduire", label: "Raccourcir", free: true },
+      { id: "resumer", label: "Résumer", free: false },
+      { id: "reformuler", label: "Reformuler", free: false },
+      { id: "structurer", label: "Structurer", free: false },
+    ],
+  },
+  {
+    id: "style", label: "Style", color: "#ec4899", bg: "rgba(236,72,153,0.08)", border: "rgba(236,72,153,0.2)",
+    modes: [
+      { id: "neutre", label: "Neutre", free: true },
+      { id: "clair", label: "Clair et concis", free: true },
+      { id: "engageant", label: "Engageant", free: true },
+      { id: "persuasif", label: "Persuasif", free: false },
+      { id: "creatif", label: "Littéraire", free: false },
+      { id: "humoristique", label: "Humoristique", free: false },
+      { id: "poetique", label: "Poétique", free: false },
+      { id: "journalistique", label: "Journalistique", free: false },
+      { id: "storytelling", label: "Storytelling", free: false },
+    ],
+  },
+  {
+    id: "lang", label: "Langue", color: "#8b5cf6", bg: "rgba(139,92,246,0.08)", border: "rgba(139,92,246,0.2)",
+    modes: [
+      { id: "anglais", label: "Anglais", free: true },
+      { id: "francais", label: "Français", free: true },
+      { id: "espagnol", label: "Espagnol", free: true },
+      { id: "arabe", label: "Arabe", free: false },
+      { id: "allemand", label: "Allemand", free: false },
+      { id: "portugais", label: "Portugais", free: false },
+      { id: "italien", label: "Italien", free: false },
+      { id: "chinois", label: "Chinois", free: false },
+      { id: "japonais", label: "Japonais", free: false },
+    ],
+  },
+];

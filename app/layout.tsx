@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
 import AuthProvider from "@/components/AuthProvider";
 import "./globals.css";
 
@@ -22,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="font-sans">
+    <html lang="fr">
+      <body>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

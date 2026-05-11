@@ -1,219 +1,150 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
-
-interface Mode {
-  id: string;
-  icon: string;
-  label: string;
-  category: string;
-}
-
-const MODES: Mode[] = [
-  { id: "professionnel", icon: "💼", label: "Professionnel", category: "Ton" },
-  { id: "casual", icon: "😎", label: "Casual", category: "Ton" },
-  { id: "académique", icon: "🎓", label: "Académique", category: "Ton" },
-  { id: "email", icon: "✉️", label: "Email", category: "Format" },
-  { id: "tweet", icon: "🐦", label: "Tweet", category: "Format" },
-  { id: "resume", icon: "📋", label: "Résumé", category: "Format" },
-  { id: "corriger", icon: "✏️", label: "Corriger", category: "Éditer" },
-  { id: "simplifier", icon: "🔽", label: "Simplifier", category: "Éditer" },
-  { id: "allonger", icon: "📏", label: "Allonger", category: "Éditer" },
-  { id: "reduire", icon: "✂️", label: "Réduire", category: "Éditer" },
-  { id: "persuasif", icon: "🔥", label: "Persuasif", category: "Style" },
-  { id: "creatif", icon: "💡", label: "Créatif", category: "Style" },
-  { id: "anglais", icon: "🇬🇧", label: "→ Anglais", category: "Traduire" },
-  { id: "francais", icon: "🇫🇷", label: "→ Français", category: "Traduire" },
-  { id: "espagnol", icon: "🇪🇸", label: "→ Espagnol", category: "Traduire" },
-  { id: "arabe", icon: "🇸🇦", label: "→ Arabe", category: "Traduire" },
-];
-
-const CATEGORIES = ["Ton", "Format", "Éditer", "Style", "Traduire"];
+import { LogoFull, BgElements } from "@/components/ui";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function AppPage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
-  const [mode, setMode] = useState("professionnel");
+  const [selected, setSelected] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState("");
-  const resultRef = useRef<HTMLTextAreaElement>(null);
+  const [err, setErr] = useState("");
+  const [remaining, setRemaining] = useState(5);
+  const isPro = false;
 
-  const MAX_CHARS = 5000;
-
-  const handleTransform = async () => {
-    if (!text.trim()) return;
-    setLoading(true);
-    setError("");
-    setResult("");
-
-    try {
-      const res = await fetch("/api/rewrite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.trim(), mode }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Une erreur est survenue");
-        return;
-      }
-
-      setResult(data.result);
-    } catch {
-      setError("Erreur de connexion. Vérifie ta connexion internet.");
-    } finally {
-      setLoading(false);
-    }
+  const toggleMode = (catId: string, modeId: string) => {
+    setSelected(prev => ({ ...prev, [catId]: prev[catId] === modeId ? null : modeId }));
   };
 
-  const handleCopy = async () => {
+  const activeSelections = Object.entries(selected).filter(([_, v]) => v) as [string, string][];
+
+  const getLabels = () => activeSelections.map(([c, m]) => {
+    const cat = CATEGORIES.find(x => x.id === c);
+    return cat?.modes.find(x => x.id === m)?.label;
+  }).filter(Boolean);
+
+  const transform = async () => {
+    if (!text.trim() || loading) return;
+    setLoading(true); setErr(""); setResult("");
+
+    const modes = activeSelections.map(([_, m]) => m);
+    if (modes.length === 0) modes.push("professionnel");
+
+    try {
+      const r = await fetch("/api/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, modes }),
+      });
+      const d = await r.json();
+      if (d.error) { setErr(d.error); }
+      else { setResult(d.result); if (d.remaining !== undefined) setRemaining(d.remaining); }
+    } catch { setErr("Problème de connexion."); }
+    finally { setLoading(false); }
+  };
+
+  const copy = async () => {
     if (!result) return;
     await navigator.clipboard.writeText(result);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1800);
   };
 
-  const charCount = text.length;
-  const charClass =
-    charCount > MAX_CHARS
-      ? "danger"
-      : charCount > MAX_CHARS * 0.8
-      ? "warning"
-      : "";
+  const labels = getLabels();
 
   return (
-    <div className="min-h-screen grid-bg">
+    <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--fg)",fontFamily:"var(--font)"}}>
+      <BgElements/>
+
       {/* Nav */}
-      <nav className="border-b border-white/5 bg-surface-950/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-xs">
-              R
-            </div>
-            <span className="font-semibold text-white tracking-tight">
-              RewriteAI
-            </span>
-          </Link>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-surface-300 hidden sm:inline">
-              5 / 5 transformations restantes
-            </span>
-            <button className="px-4 py-1.5 rounded-lg bg-brand/10 text-brand-400 text-sm font-medium border border-brand/20 hover:bg-brand/20 transition">
-              Passer Pro
-            </button>
-          </div>
+      <nav className="anim a1" style={{position:"relative",zIndex:10,borderBottom:"1px solid var(--border)",padding:"0 24px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <Link href="/"><LogoFull size={22}/></Link>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:12,color:"var(--fg3)"}}>{remaining >= 0 ? `${remaining} restantes` : "Illimité"}</span>
+          <button className="btn-g" style={{padding:"4px 14px",fontSize:12,borderColor:"rgba(99,102,241,.2)",color:"var(--accent2)",background:"rgba(99,102,241,.06)"}}>Passer Pro</button>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div style={{maxWidth:1000,margin:"0 auto",padding:"20px 24px",position:"relative",zIndex:5}}>
+
         {/* Mode selector */}
-        <div className="mb-6">
-          {CATEGORIES.map((cat) => (
-            <div key={cat} className="mb-3">
-              <div className="text-xs text-surface-300 uppercase tracking-wider font-medium mb-2">
-                {cat}
+        <div className="anim a2" style={{marginBottom:16}}>
+          {CATEGORIES.map(cat => (
+            <div key={cat.id} style={{marginBottom:8,padding:"10px 14px",borderRadius:8,background:selected[cat.id]?cat.bg:"transparent",border:`1px solid ${selected[cat.id]?cat.border:"transparent"}`,transition:"all .25s ease"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:cat.color}}/>
+                <span style={{fontSize:10,fontWeight:600,color:cat.color,textTransform:"uppercase",letterSpacing:"1px"}}>{cat.label}</span>
+                {selected[cat.id] && (
+                  <span style={{fontSize:10,padding:"1px 8px",borderRadius:4,background:cat.color,color:"#fff",fontWeight:600,marginLeft:"auto",animation:"fadeUp .3s ease"}}>{cat.modes.find(m=>m.id===selected[cat.id])?.label}</span>
+                )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {MODES.filter((m) => m.category === cat).map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(m.id)}
-                    className={`mode-chip ${mode === m.id ? "active" : ""}`}
-                  >
-                    <span>{m.icon}</span>
-                    {m.label}
-                  </button>
-                ))}
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {cat.modes.map(m => {
+                  const on = selected[cat.id] === m.id;
+                  const lk = !m.free && !isPro;
+                  return (
+                    <button key={m.id} className={`mb ${lk?"lk":""}`} onClick={()=>!lk&&toggleMode(cat.id,m.id)} title={lk?"Plan Pro requis":""}
+                      style={{fontWeight:on?600:400,border:`1px solid ${on?cat.color:"var(--border)"}`,background:on?cat.color:undefined,color:on?"#fff":lk?"var(--fg3)":undefined,boxShadow:on?`0 0 14px ${cat.color}30`:"none"}}>
+                      {m.label}{lk&&" ✦"}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
 
+        {/* Combo bar */}
+        {labels.length > 0 && (
+          <div className="anim a3" style={{marginBottom:12,padding:"8px 14px",borderRadius:8,background:"var(--bg2)",border:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:11,color:"var(--fg3)",fontWeight:500}}>Combo :</span>
+            {activeSelections.map(([c, m]) => {
+              const cat = CATEGORIES.find(x => x.id === c);
+              const mode = cat?.modes.find(x => x.id === m);
+              return <span key={c} style={{fontSize:11,padding:"2px 10px",borderRadius:4,background:cat?.bg,border:`1px solid ${cat?.border}`,color:cat?.color,fontWeight:600}}>{mode?.label}</span>;
+            })}
+          </div>
+        )}
+
         {/* Editor */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Input */}
-          <div className="glass-card p-1">
-            <div className="flex items-center justify-between px-4 py-2">
-              <span className="text-xs text-surface-300 font-medium uppercase tracking-wider">
-                Ton texte
-              </span>
-              <span className={`char-counter ${charClass}`}>
-                {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
-              </span>
+        <div className="anim a4" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {/* Source */}
+          <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,display:"flex",flexDirection:"column"}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:10,fontWeight:600,color:"var(--fg3)",textTransform:"uppercase",letterSpacing:".8px"}}>Source</span>
+              <span style={{fontSize:11,color:text.length>4500?"#f87171":"var(--fg3)"}}>{text.length.toLocaleString()} / 5 000</span>
             </div>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Colle ton texte ici..."
-              className="w-full h-64 md:h-80 bg-transparent text-surface-100 text-[15px] leading-relaxed resize-none p-4 pt-0 placeholder:text-surface-300/40 focus:outline-none"
-              maxLength={MAX_CHARS}
-            />
-            <div className="px-4 py-3 border-t border-white/5 flex items-center justify-between">
-              <button
-                onClick={() => setText("")}
-                className="text-xs text-surface-300 hover:text-white transition"
-              >
-                Effacer
-              </button>
-              <button
-                onClick={handleTransform}
-                disabled={!text.trim() || loading || charCount > MAX_CHARS}
-                className="btn-primary !py-2.5 !px-6 !text-sm flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <span className="loading-spinner" />
-                    Transformation...
-                  </>
-                ) : (
-                  <>
-                    Transformer →
-                  </>
-                )}
+            <textarea value={text} onChange={e=>setText(e.target.value.slice(0,5000))} placeholder="Colle ton texte ici..." style={{flex:1,minHeight:220,padding:16}}/>
+            <div style={{padding:"10px 16px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <button onClick={()=>{setText("");setResult("");setErr("")}} style={{background:"none",border:"none",color:"var(--fg3)",fontSize:12,cursor:"pointer",fontFamily:"var(--font)"}}>Effacer</button>
+              <button className="btn-m" onClick={transform} disabled={!text.trim()||loading} style={{padding:"8px 22px",fontSize:13}}>
+                {loading && <span style={{width:14,height:14,border:"2px solid rgba(255,255,255,.2)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .5s linear infinite",display:"inline-block"}}/>}
+                {loading?"En cours...":"Transformer"}
               </button>
             </div>
           </div>
 
-          {/* Output */}
-          <div className="glass-card p-1">
-            <div className="flex items-center justify-between px-4 py-2">
-              <span className="text-xs text-surface-300 font-medium uppercase tracking-wider">
-                Résultat —{" "}
-                {MODES.find((m) => m.id === mode)?.icon}{" "}
-                {MODES.find((m) => m.id === mode)?.label}
+          {/* Result */}
+          <div style={{background:"var(--bg2)",border:`1px solid ${result?"rgba(45,212,191,.2)":"var(--border)"}`,borderRadius:10,display:"flex",flexDirection:"column",transition:"border-color .3s ease"}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:10,fontWeight:600,color:result?"var(--teal)":"var(--fg3)",textTransform:"uppercase",letterSpacing:".8px",transition:"color .3s"}}>
+                Résultat{labels.length>0?` — ${labels.join(" + ")}`:""}
               </span>
               {result && (
-                <button
-                  onClick={handleCopy}
-                  className="text-xs text-brand-400 hover:text-brand-300 transition font-medium flex items-center gap-1"
-                >
-                  {copied ? "✓ Copié !" : "Copier"}
+                <button onClick={copy} style={{background:"none",border:"none",color:copied?"var(--teal)":"var(--fg2)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>
+                  {copied?"Copié !":"Copier"}
                 </button>
               )}
             </div>
-            <textarea
-              ref={resultRef}
-              value={result}
-              readOnly
-              placeholder="Le texte transformé apparaîtra ici..."
-              className="w-full h-64 md:h-80 bg-transparent text-surface-100 text-[15px] leading-relaxed resize-none p-4 pt-0 placeholder:text-surface-300/40 focus:outline-none"
-            />
-            {error && (
-              <div className="px-4 py-3 border-t border-red-500/20 text-sm text-red-400">
-                {error}
-              </div>
-            )}
+            <textarea value={result} readOnly placeholder="Le résultat apparaîtra ici..." style={{flex:1,minHeight:220,padding:16,background:result?"rgba(45,212,191,.03)":"transparent",transition:"background .3s ease",animation:result?"resultIn .4s ease":"none"}}/>
+            {err && <div style={{padding:"10px 16px",borderTop:"1px solid rgba(248,113,113,.2)",fontSize:13,color:"#f87171"}}>{err}</div>}
           </div>
         </div>
 
-        {/* Keyboard shortcut hint */}
-        <div className="text-center mt-6 text-xs text-surface-300/60">
-          Astuce : Ctrl+V pour coller, puis clique sur Transformer
-        </div>
+        <p className="anim a5" style={{textAlign:"center",marginTop:14,fontSize:12,color:"var(--fg3)"}}>Choisis un mode par catégorie pour les combiner</p>
       </div>
     </div>
   );
